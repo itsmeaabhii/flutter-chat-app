@@ -51,26 +51,26 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1115),
+      backgroundColor: const Color(0xFFFFFFFF),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1C1F26),
+        backgroundColor: const Color(0xFFFFFFFF),
         elevation: 0,
         title: const Text(
           'Chat History',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: Colors.black,
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           if (_sessions.isNotEmpty)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Colors.white),
+              icon: const Icon(Icons.more_vert, color: Colors.black),
               onSelected: (value) async {
                 if (value == 'clear') {
                   final confirm = await showDialog<bool>(
@@ -126,13 +126,13 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                       Icon(
                         Icons.history,
                         size: 80,
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withOpacity(0.4),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'No chat history yet',
                         style: TextStyle(
-                          color: Colors.grey.withOpacity(0.6),
+                          color: Colors.grey.withOpacity(0.7),
                           fontSize: 18,
                         ),
                       ),
@@ -140,7 +140,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                       Text(
                         'Your conversations will appear here',
                         style: TextStyle(
-                          color: Colors.grey.withOpacity(0.4),
+                          color: Colors.grey.withOpacity(0.5),
                           fontSize: 14,
                         ),
                       ),
@@ -174,10 +174,10 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1A),
+                            color: const Color(0xFFF5F5F5),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: const Color(0xFF2D2D2D),
+                              color: const Color(0xFFE0E0E0),
                               width: 1,
                             ),
                           ),
@@ -189,12 +189,12 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.white,
+                                      color: Colors.black,
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Icon(
                                       Icons.chat_bubble_outline,
-                                      color: Colors.black,
+                                      color: Colors.white,
                                       size: 16,
                                     ),
                                   ),
@@ -207,7 +207,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                                         Text(
                                           session.title,
                                           style: const TextStyle(
-                                            color: Color(0xFFE5E7EB),
+                                            color: Color(0xFF000000),
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -218,7 +218,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                                         Text(
                                           _formatDate(session.timestamp),
                                           style: const TextStyle(
-                                            color: Color(0xFF6B7280),
+                                            color: Color(0xFF757575),
                                             fontSize: 12,
                                           ),
                                         ),
@@ -227,7 +227,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                                   ),
                                   Icon(
                                     Icons.chevron_right,
-                                    color: Colors.grey.withOpacity(0.5),
+                                    color: Colors.grey.withOpacity(0.6),
                                   ),
                                 ],
                               ),
@@ -236,7 +236,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                                 Text(
                                   session.preview,
                                   style: const TextStyle(
-                                    color: Color(0xFF9CA3AF),
+                                    color: Color(0xFF616161),
                                     fontSize: 13,
                                   ),
                                   maxLines: 2,
@@ -247,7 +247,7 @@ class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
                               Text(
                                 '${session.messages.length} messages',
                                 style: const TextStyle(
-                                  color: Color(0xFF6B7280),
+                                  color: Color(0xFF9E9E9E),
                                   fontSize: 11,
                                 ),
                               ),

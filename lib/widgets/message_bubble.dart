@@ -21,17 +21,17 @@ class MessageBubble extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Colors.black,
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(Icons.auto_awesome, color: Colors.black, size: 20),
+              child: const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
           ],
@@ -42,25 +42,25 @@ class MessageBubble extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                 decoration: BoxDecoration(
                   color: message.isUser
-                      ? const Color(0xFFFFFFFF)
-                      : const Color(0xFF1A1A1A),
+                      ? const Color(0xFF000000)
+                      : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: message.isUser ? Colors.white : const Color(0xFF2D2D2D),
+                    color: message.isUser ? Colors.black : const Color(0xFFE0E0E0),
                     width: 1,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
                     ),
                   ],
                 ),
                 child: Text(
                   message.text,
                   style: TextStyle(
-                    color: message.isUser ? Colors.black : const Color(0xFFFFFFFF),
+                    color: message.isUser ? const Color(0xFFFFFFFF) : Colors.black,
                     fontSize: 15,
                     height: 1.6,
                     letterSpacing: 0.2,

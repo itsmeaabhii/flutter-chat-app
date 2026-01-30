@@ -136,10 +136,10 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1A1A1A),
+        backgroundColor: const Color(0xFFFFFFFF),
         toolbarHeight: 64,
         leading: IconButton(
-          icon: const Icon(Icons.history, color: Colors.white, size: 24),
+          icon: const Icon(Icons.history, color: Colors.black, size: 24),
           onPressed: () async {
             final session = await Navigator.push<ChatSession>(
               context,
@@ -158,14 +158,14 @@ class _ChatScreenState extends State<ChatScreen> {
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: Colors.black,
             letterSpacing: 0.5,
           ),
         ),
         centerTitle: true,
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Color(0xFFE5E7EB)),
+            icon: const Icon(Icons.more_vert, color: Colors.black),
             onSelected: (value) async {
               if (value == 'new') {
                 if (_messages.length >= 2) {
@@ -246,12 +246,12 @@ class _ChatScreenState extends State<ChatScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: const Color(0xFFF5F5F5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
         ],
       ),
@@ -264,10 +264,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 constraints: const BoxConstraints(maxHeight: 120),
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D2D2D),
+                  color: const Color(0xFFFFFFFF),
                   borderRadius: BorderRadius.circular(28),
                   border: Border.all(
-                    color: const Color(0xFF404040),
+                    color: const Color(0xFFE0E0E0),
                     width: 1,
                   ),
                 ),
@@ -277,7 +277,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   textInputAction: TextInputAction.send,
                   onSubmitted: (_) => _sendMessage(),
                   style: const TextStyle(
-                    color: Color(0xFFFFFFFF),
+                    color: Color(0xFF000000),
                     fontSize: 15,
                     height: 1.4,
                   ),
@@ -286,7 +286,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 12),
                     hintStyle: TextStyle(
-                      color: Color(0xFF808080),
+                      color: Color(0xFF9E9E9E),
                       fontSize: 15,
                     ),
                   ),
@@ -298,14 +298,14 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: hasText ? Colors.white : const Color(0xFF2D2D2D),
+                color: hasText ? Colors.black : const Color(0xFFE0E0E0),
                 shape: BoxShape.circle,
                 boxShadow: hasText
                     ? [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ]
                     : null,
@@ -313,7 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: IconButton(
                 icon: Icon(
                   Icons.arrow_upward_rounded,
-                  color: hasText ? Colors.black : const Color(0xFF808080),
+                  color: hasText ? Colors.white : const Color(0xFF9E9E9E),
                   size: 22,
                 ),
                 onPressed: _isTyping || !hasText ? null : _sendMessage,

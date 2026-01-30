@@ -19,22 +19,23 @@ class AIAssistantApp extends StatelessWidget {
       title: 'Chat AI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFFFFFFFF),
-        scaffoldBackgroundColor: const Color(0xFF000000),
-        cardColor: const Color(0xFF1A1A1A),
+        brightness: Brightness.light,
+        primaryColor: const Color(0xFF000000),
+        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
+        cardColor: const Color(0xFFF5F5F5),
         useMaterial3: true,
         textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: Color(0xFFFFFFFF)),
-          bodyMedium: TextStyle(color: Color(0xFFFFFFFF)),
+          bodyLarge: TextStyle(color: Color(0xFF000000)),
+          bodyMedium: TextStyle(color: Color(0xFF000000)),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF1A1A1A),
+          backgroundColor: Color(0xFFFFFFFF),
+          foregroundColor: Color(0xFF000000),
           elevation: 0,
           centerTitle: true,
         ),
       ),
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.light,
       home: const ChatScreen(),
     );
   }
