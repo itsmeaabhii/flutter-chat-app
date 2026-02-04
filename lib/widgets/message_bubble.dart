@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:markdown/markdown.dart' as md;
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/github.dart';
+import 'package:flutter_highlight/themes/github-dark.dart';
 import '../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -61,17 +66,97 @@ class MessageBubble extends StatelessWidget {
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      message.text,
-                      style: TextStyle(
-                        color: message.isUser 
-                            ? const Color(0xFFFFFFFF) 
-                            : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                          b_hasCodeBlock(message.text) 
+                        ? MarkdownBody(
+                            data: message.text,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontSize: 15,
+                                height: 1.6,
+                                letterSpacing: 0.2,
+                              ),
+                              code: TextStyle(
+                                backgroundColor: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF6F8FA),
+                                color: isDark ? const Color(0xFFE06C75) : const Color(0xFFD73A49),
+                                fontFamily: 'monospace',
+                                fontSize: 14,
+                              ),
+                              codeblockPadding: const EdgeInsets.all(12),
+                              codeblockDecoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF6F8FA),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFF2D2D2D) : const Color(0xFFE1E4E8),
+                                ),
+                              ),
+                              blockquote: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFCCCCCC) 
+                                    : (isDark ? const Color(0xFFB0B0B0) : const Color(0xFF666666)),
+                                fontSize: 15,
+                              ),
+                              h1: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              h2: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              h3: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              listBullet: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                              ),
+                              strong: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontWeight: FontWeight.bold,
+                              ),
+                              em: TextStyle(
+                                color: message.isUser 
+                                    ? const Color(0xFFFFFFFF) 
+                                    : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                            extensionSet: md.ExtensionSet(
+                              md.ExtensionSet.gitHubFlavored.blockSyntaxes,
+                              [
+                                md.EmojiSyntax(),
+                                ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes
+                              ],
+                            ),
+                          )
+                        : Text(
+                            message.text,
+                            style: TextStyle(
+                              color: message.isUser 
+                                  ? const Color(0xFFFFFFFF) 
+                                  : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
+                              fontSize: 15,
+                              height: 1.6,
+                              letterSpacing: 0.2,
+                            ),
+                                  : (isDark ? const Color(0xFFE0E0E0) : Colors.black),
                         fontSize: 15,
                         height: 1.6,
                         letterSpacing: 0.2,
@@ -112,6 +197,15 @@ class MessageBubble extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.green[700],
       ),
+    );
+  }
+
+  bool _hasCodeBlock(String text) {
+    // Check if text contains markdown formatting
+    return text.contains('```') || text.contains('`') || 
+           text.contains('**') || text.contains('*') || 
+           text.contains('#') || text.contains('[');
+  }
 
   Widget _buildAttachments(bool isDark) {
     return Padding(
@@ -179,8 +273,6 @@ class MessageBubble extends StatelessWidget {
       case 'image':
         return Icons.image;
       case 'document':
-        return Icons.description;
-      case 'video':
         return Icons.video_file;
       case 'audio':
         return Icons.audio_file;
