@@ -9,8 +9,12 @@ import '../widgets/typing_indicator.dart';
 import 'settings_screen.dart';
 import 'chat_history_screen.dart';
 
+String _generateMessageId() => DateTime.now().millisecondsSinceEpoch.toString();
+
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  final VoidCallback? onToggleTheme;
+  
+  const ChatScreen({super.key, this.onToggleTheme});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -43,7 +47,8 @@ class _ChatScreenState extends State<ChatScreen> {
       welcomeText = "Ask me anything — GK, doubts, coding, daily life.\n\n💡 Add your OpenAI API key in settings to unlock AI responses.";
     }
     
-    setState(() {
+    setSid: _generateMessageId(),
+        tate(() {
       _messages.add(Message(
         text: welcomeText,
         isUser: false,
@@ -60,7 +65,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Add user message
     setState(() {
-      _messages.add(Message(
+      _mid: _generateMessageId(),
+        essages.add(Message(
         text: userMessage,
         isUser: true,
         timestamp: DateTime.now(),
@@ -74,8 +80,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final response = await AIService.sendMessage(userMessage, _messages);
 
-      setState(() {
-        _messages.add(Message(
+      setSid: _generateMessageId(),
           text: response,
           isUser: false,
           timestamp: DateTime.now(),
@@ -85,6 +90,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
     } catch (e) {
+      setState(() {
+        _messages.add(Message(
+          id: _generateMessageId(),
       setState(() {
         _messages.add(Message(
           text: "I'm sorry, I encountered an error. Could you try rephrasing your question?",
