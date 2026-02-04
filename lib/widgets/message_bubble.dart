@@ -41,6 +41,8 @@ class MessageBubble extends StatelessWidget {
             child: Column(
               crossAxisAlignment: message.isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
+                if (message.attachments != null && message.attachments!.isNotEmpty)
+                  _buildAttachments(isDark),
                 GestureDetector(
                   onLongPress: () => _copyMessage(context),
                   child: Container(
@@ -110,6 +112,82 @@ class MessageBubble extends StatelessWidget {
         behavior: SnackBarBehavior.floating,
         backgroundColor: Colors.green[700],
       ),
+
+  Widget _buildAttachments(bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: message.attachments!.map((attachment) {
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: message.isUser
+                  ? (isDark ? const Color(0xFF3A3A3A) : const Color(0xFF2B2B2B))
+                  : (isDark ? const Color(0xFF2A2A2A) : const Color(0xFFE8E8E8)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _getFileIcon(attachment.type),
+                  size: 24,
+                  color: message.isUser 
+                      ? Colors.white 
+                      : (isDark ? Colors.grey[300] : Colors.grey[700]),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      attachment.name,
+                      style: TextStyle(
+                        color: message.isUser 
+                            ? Colors.white 
+                            : (isDark ? Colors.grey[300] : Colors.black87),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      '${attachment.sizeInMB} MB',
+                      style: TextStyle(
+                        color: message.isUser 
+                            ? Colors.white70 
+                            : (isDark ? Colors.grey[500] : Colors.grey[600]),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  IconData _getFileIcon(String type) {
+    switch (type) {
+      case 'image':
+        return Icons.image;
+      case 'document':
+        return Icons.description;
+      case 'video':
+        return Icons.video_file;
+      case 'audio':
+        return Icons.audio_file;
+      default:
+        return Icons.insert_drive_file;
+    }
+  }
     );
   }
 }

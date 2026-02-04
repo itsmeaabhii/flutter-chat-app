@@ -2,6 +2,37 @@ import 'package:equatable/equatable.dart';
 
 enum MessageStatus { sending, sent, delivered, read, failed }
 
+class MessageAttachment {
+  final String name;
+  final String path;
+  final String type; // 'image', 'document', 'video', 'audio', 'other'
+  final int size; // in bytes
+
+  const MessageAttachment({
+    required this.name,
+    required this.path,
+    required this.type,
+    required this.size,
+  });
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'path': path,
+        'type': type,
+        'size': size,
+      };
+
+  factory MessageAttachment.fromJson(Map<String, dynamic> json) =>
+      MessageAttachment(
+        name: json['name'] ?? '',
+        path: json['path'] ?? '',
+        type: json['type'] ?? 'other',
+        size: json['size'] ?? 0,
+      );
+
+  String get sizeInMB => (size / (1024 * 1024)).toStringAsFixed(2);
+}
+
 class Message extends Equatable {
   final String id;
   final String text;
@@ -10,6 +41,7 @@ class Message extends Equatable {
   final bool isTyping;
   final MessageStatus? status;
   final Map<String, dynamic>? metadata;
+  final List<MessageAttachment>? attachments;
 
   const Message({
     required this.id,
@@ -19,6 +51,7 @@ class Message extends Equatable {
     this.isTyping = false,
     this.status,
     this.metadata,
+    this.attachments,
   });
 
   Message copyWith({
@@ -29,6 +62,7 @@ class Message extends Equatable {
     bool? isTyping,
     MessageStatus? status,
     Map<String, dynamic>? metadata,
+    List<MessageAttachment>? attachments,
   }) {
     return Message(
       id: id ?? this.id,
@@ -38,6 +72,7 @@ class Message extends Equatable {
       isTyping: isTyping ?? this.isTyping,
       status: status ?? this.status,
       metadata: metadata ?? this.metadata,
+      attachments: attachments ?? this.attachments,
     );
   }
 
@@ -49,6 +84,8 @@ class Message extends Equatable {
         'isTyping': isTyping,
         if (status != null) 'status': status!.name,
         if (metadata != null) 'metadata': metadata,
+        if (attachments != null)
+          'attachments': attachments!.map((a) => a.toJson()).toList(),
       };
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
@@ -66,8 +103,14 @@ class Message extends Equatable {
               )
             : null,
         metadata: json['metadata'],
+        attachments: json['attachments'] != null
+            ? (json['attachments'] as List)
+                .map((a) => MessageAttachment.fromJson(a))
+                .toList()
+            : null,
       );
 
   @override
-  List<Object?> get props => [id, text, isUser, timestamp, isTyping, status, metadata];
+  List<Object?> get props =>
+      [id, text, isUser, timestamp, isTyping, status, metadata, attachments];
 }

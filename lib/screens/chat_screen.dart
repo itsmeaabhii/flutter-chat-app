@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../models/message.dart';
 import '../models/chat_session.dart';
 import '../services/ai_service.dart';
@@ -26,6 +28,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<Message> _messages = [];
   bool _isTyping = false;
   String? _currentSessionId;
+  List<MessageAttachment> _selectedAttachments = [];
 
   @override
   void initState() {
@@ -78,7 +81,12 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Get AI response
     try {
-      final response = await AIService.sendMessage(userMessage, _messages);
+      String contextMessage = userMessage;
+      if (attachments.isNotEmpty) {
+        contextMessage += '\n[User attached ${attachments.length} file(s): ${attachments.map((a) => a.name).join(', ')}]';
+      }
+      
+      final response = await AIService.sendMessage(contextMessage, _messages);
 
       setSid: _generateMessageId(),
           text: response,
@@ -244,21 +252,177 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           _buildInputArea(),
-        ],
+  Future<void> _pickFiles() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
+
+      if (result != null) {
+        final newAttachments = result.files.map((file) {
+          String fileType = 'other';
+          final extension = file.extension?.toLowerCase() ?? '';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+            fileType = 'image';
+          } else if (['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'].contains(extension)) {
+            filColumn(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasAttachments) _buildAttachmentPreview(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFE0E0E0),
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.attach_file,
+                      color: Color(0xFF424242),
+                      size: 22,
+                    ),
+                    onPressed: _pickFiles,
+                    padding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              } else if (['mp3', 'wav', 'aac', 'm4a'].contains(extension)) {
+            fileType = 'audio';
+          }
+
+          return MessageAttachment(
+            name: file.name,
+            path: file.path ?? '',
+            type: fileType,
+            size: file.size,
+          );
+        }).toList();
+
+        setState(() {
+          _selectedAttachments.addAll(newAttachments);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error picking files: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );(hasText || hasAttachments) ? Colors.black : const Color(0xFFE0E0E0),
+                shape: BoxShape.circle,
+                boxShadow: (hasText || hasAttachments)
+                    ? [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: IconButton(
+                icon: Icon(
+                  Icons.arrow_upward_rounded,
+                  color: (hasText || hasAttachments) ? Colors.white : const Color(0xFF9E9E9E),
+                  size: 22,
+                ),
+                onPressed: _isTyping || (!hasText && !hasAttachments) ? null : _sendMessage,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInputArea() {
-    final hasText = _controller.text.trim().isNotEmpty;
+  Widget _buildAttachmentPreview() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
+      padding: const EdgeInsets.only(bottom: 12),
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _selectedAttachments.length,
+        itemBuilder: (context, index) {
+          final attachment = _selectedAttachments[index];
+          return Container(
+            width: 80,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Stack(
+              children: [
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        _getFileIcon(attachment.type),
+                        size: 32,
+                        color: Colors.grey[700],
+                      ),
+                      const SizedBox(height: 4),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          attachment.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: GestureDetector(
+                    onTap: () => _removeAttachment(index),
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  IconData _getFileIcon(String type) {
+    switch (type) {
+      case 'image':
+        return Icons.image;
+      case 'document':
+        return Icons.description;
+      case 'video':
+        return Icons.video_file;
+      case 'audio':
+        return Icons.audio_file;
+      default:
+        return Icons.insert_drive_file;
+    }      blurRadius: 10,
             offset: const Offset(0, -2),
           ),
         ],
