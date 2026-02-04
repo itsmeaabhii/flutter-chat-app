@@ -14,6 +14,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _selectedStyle;
   bool _likesExamples = true;
   bool _likesStepByStep = false;
+  bool _isDarkMode = false;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _selectedStyle = prefs.explanationStyle;
       _likesExamples = prefs.likesExamples;
       _likesStepByStep = prefs.likesStepByStep;
+      _isDarkMode = PreferenceService.getDarkMode();
     });
   }
 
@@ -110,7 +112,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          _buAppearance',
+            Icons.palette,
+            [
+              SwitchListTile(
+                title: const Text('Dark Mode'),
+                subtitle: const Text('Switch between light and dark theme'),
+                value: _isDarkMode,
+                onChanged: (value) {
+                  setState(() {
+                    _isDarkMode = value;
+                  });
+                  PreferenceService.setDarkMode(value);
+                },
+                secondary: Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           _buildSection(
+            'ildSection(
             'Learning Preferences',
             Icons.school,
             [

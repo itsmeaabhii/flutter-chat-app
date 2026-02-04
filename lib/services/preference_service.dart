@@ -58,6 +58,15 @@ class PreferenceService {
     return getApiKey()?.isNotEmpty ?? false;
   }
 
+  // Dark Mode Management
+  static Future<void> setDarkMode(bool isDark) async {
+    await _prefs?.setBool('dark_mode', isDark);
+  }
+
+  static bool getDarkMode() {
+    return _prefs?.getBool('dark_mode') ?? false;
+  }
+
   // Conversation Summary Storage
   static Future<void> saveConversationSummary(ConversationSummary summary) async {
     final summaries = getConversationSummaries();
