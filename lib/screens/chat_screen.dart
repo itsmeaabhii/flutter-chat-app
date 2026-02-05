@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:intl/intl.dart';
 import 'dart:io';
 import '../models/message.dart';
 import '../models/chat_session.dart';
@@ -199,6 +204,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   _messages.clear();
                   _addWelcomeMessage();
                 });
+              } else if (value == 'export_text') {
+                _exportAsText();
+              } else if (value == 'export_pdf') {
+                _exportAsPDF();
               }
             },
             itemBuilder: (context) => [
@@ -219,6 +228,26 @@ class _ChatScreenState extends State<ChatScreen> {
                     Icon(Icons.delete_outline, size: 20),
                     SizedBox(width: 12),
                     Text('Clear Chat'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export_text',
+                child: Row(
+                  children: [
+                    Icon(Icons.text_snippet_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Export as Text'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export_pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf_outlined, size: 20),
+                    SizedBox(width: 12),
+                    Text('Export as PDF'),
                   ],
                 ),
               ),
@@ -496,6 +525,220 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _exportAsText() async {
+    if (_messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No messages to export')),
+      );
+      return;
+    }
+
+    try {
+      final buffer = StringBuffer();
+      buffer.writeln('Chat AI Conversation');
+      buffer.writeln('Exported: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}');
+      buffer.writeln('=' * 50);
+      buffer.writeln();
+
+      for (var message in _messages) {
+        final sender = message.isUser ? 'You' : 'AI';
+        final time = DateFormat('HH:mm').format(message.timestamp);
+        buffer.writeln('[$time] $sender:');
+        buffer.writeln(message.text);
+        
+        if (message.attachments != null && message.attachments!.isNotEmpty) {
+          buffer.writeln('Attachments: ${message.attachments!.map((a) => a.name).join(', ')}');
+        }
+        
+        buffer.writeln();
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final file = File('${directory.path}/chat_export_$timestamp.txt');
+      await file.writeAsString(buffer.toString());
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Chat AI Conversation',
+        text: 'Exported conversation from Chat AI',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Conversation exported successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportAsPDF() async {
+    if (_messages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No messages to export')),
+      );
+      return;
+    }
+
+    try {
+      final pdf = pw.Document();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          build: (pw.Context context) {
+            return [
+              pw.Header(
+                level: 0,
+                child: pw.Text(
+                  'Chat AI Conversation',
+                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 20),
+                child: pw.Text(
+                  'Exported: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now())}',
+                  style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
+                ),
+              ),
+              pw.Divider(),
+              ..._messages.map((message) {
+                return pw.Container(
+                  margin: const pw.EdgeInsets.only(bottom: 16),
+                  child: pw.Column(
+                    crossAxisAlignment: message.isUser 
+                        ? pw.CrossAxisAlignment.end 
+                        : pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: message.isUser 
+                            ? pw.MainAxisAlignment.end 
+                            : pw.MainAxisAlignment.start,
+                        children: [
+                          pw.Container(
+                            padding: const pw.EdgeInsets.all(12),
+                            decoration: pw.BoxDecoration(
+                              color: message.isUser 
+                                  ? PdfColors.black 
+                                  : PdfColors.grey300,
+                              borderRadius: pw.BorderRadius.circular(12),
+                            ),
+                            constraints: const pw.BoxConstraints(maxWidth: 400),
+                            child: pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text(
+                                  message.isUser ? 'You' : 'AI',
+                                  style: pw.TextStyle(
+                                    fontSize: 10,
+                                    color: message.isUser 
+                                        ? PdfColors.white 
+                                        : PdfColors.grey700,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                ),
+                                pw.SizedBox(height: 4),
+                                pw.Text(
+                                  message.text,
+                                  style: pw.TextStyle(
+                                    fontSize: 12,
+                                    color: message.isUser 
+                                        ? PdfColors.white 
+                                        : PdfColors.black,
+                                  ),
+                                ),
+                                if (message.attachments != null && message.attachments!.isNotEmpty)
+                                  pw.Padding(
+                                    padding: const pw.EdgeInsets.only(top: 8),
+                                    child: pw.Text(
+                                      'Attachments: ${message.attachments!.map((a) => a.name).join(', ')}',
+                                      style: pw.TextStyle(
+                                        fontSize: 10,
+                                        color: message.isUser 
+                                            ? PdfColors.white70 
+                                            : PdfColors.grey700,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.SizedBox(height: 4),
+                      pw.Text(
+                        DateFormat('HH:mm').format(message.timestamp),
+                        style: const pw.TextStyle(
+                          fontSize: 9,
+                          color: PdfColors.grey600,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ];
+          },
+        ),
+      );
+
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final file = File('${directory.path}/chat_export_$timestamp.pdf');
+      await file.writeAsBytes(await pdf.save());
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'Chat AI Conversation',
+        text: 'Exported conversation from Chat AI',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('PDF exported successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error exporting PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
