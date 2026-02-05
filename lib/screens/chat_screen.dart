@@ -20,8 +20,15 @@ String _generateMessageId() => DateTime.now().millisecondsSinceEpoch.toString();
 
 class ChatScreen extends StatefulWidget {
   final VoidCallback? onToggleTheme;
+  final Function(double)? onUpdateFontSize;
+  final Function(String)? onUpdateLanguage;
   
-  const ChatScreen({super.key, this.onToggleTheme});
+  const ChatScreen({
+    super.key, 
+    this.onToggleTheme,
+    this.onUpdateFontSize,
+    this.onUpdateLanguage,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -198,7 +205,12 @@ class _ChatScreenState extends State<ChatScreen> {
               } else if (value == 'settings') {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => SettingsScreen(
+                      onUpdateFontSize: widget.onUpdateFontSize,
+                      onUpdateLanguage: widget.onUpdateLanguage,
+                    ),
+                  ),
                 );
                 setState(() {
                   _messages.clear();

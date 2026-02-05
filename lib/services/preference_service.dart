@@ -67,6 +67,24 @@ class PreferenceService {
     return _prefs?.getBool('dark_mode') ?? false;
   }
 
+  // Font Size Management
+  static Future<void> setFontSize(double size) async {
+    await _prefs?.setDouble('font_size', size);
+  }
+
+  static double getFontSize() {
+    return _prefs?.getDouble('font_size') ?? 1.0; // Default scale 1.0
+  }
+
+  // Language Management
+  static Future<void> setLanguage(String languageCode) async {
+    await _prefs?.setString('language', languageCode);
+  }
+
+  static String getLanguage() {
+    return _prefs?.getString('language') ?? 'en'; // Default English
+  }
+
   // Conversation Summary Storage
   static Future<void> saveConversationSummary(ConversationSummary summary) async {
     final summaries = getConversationSummaries();

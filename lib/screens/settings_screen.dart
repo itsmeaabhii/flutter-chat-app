@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import '../services/preference_service.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final Function(double)? onUpdateFontSize;
+  final Function(String)? onUpdateLanguage;
+  
+  const SettingsScreen({
+    super.key,
+    this.onUpdateFontSize,
+    this.onUpdateLanguage,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -15,6 +22,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _likesExamples = true;
   bool _likesStepByStep = false;
   bool _isDarkMode = false;
+  double _fontSize = 1.0;
+  String _selectedLanguage = 'en';
 
   @override
   void initState() {
@@ -34,6 +43,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _likesExamples = prefs.likesExamples;
       _likesStepByStep = prefs.likesStepByStep;
       _isDarkMode = PreferenceService.getDarkMode();
+      _fontSize = PreferenceService.getFontSize();
+      _selectedLanguage = PreferenceService.getLanguage();
     });
   }
 
@@ -131,7 +142,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
           _buildSection(
-            'ildSection(
+            'Appearance',
+            Icons.palette,
+            [
+              SwitchListTile(
+                title: const Text('Dark Mode'),
+                subtitle: const Text('Switch between light and dark theme'),
+                value: _isDarkMode,
+                onChanged: (value) {
+                  setState(() {
+                    _isDarkMode = value;
+                  });
+                  PreferenceService.setDarkMode(value);
+                },
+                secondary: Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Font Size',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              Slider(
+                value: _fontSize,
+                min: 0.8,
+                max: 1.5,
+                divisions: 7,
+                label: _getFontSizeLabel(_fontSize),
+                onChanged: (value) {
+                  setState(() {
+                    _fontSize = value;
+                  });
+                },
+                onChangeEnd: (value) {
+                  widget.onUpdateFontSize?.call(value);
+                },
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Small', style: TextStyle(fontSize: 12 * 0.8)),
+                  Text('Medium', style: TextStyle(fontSize: 12)),
+                  Text('Large', style: TextStyle(fontSize: 12 * 1.2)),
+                  Text('XL', style: TextStyle(fontSize: 12 * 1.5)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Language',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _selectedLanguage,
+                decoration: InputDecoration(
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'en', child: Text('🇬🇧 English')),
+                  DropdownMenuItem(value: 'es', child: Text('🇪🇸 Español')),
+                  DropdownMenuItem(value: 'fr', child: Text('🇫🇷 Français')),
+                  DropdownMenuItem(value: 'de', child: Text('🇩🇪 Deutsch')),
+                  DropdownMenuItem(value: 'hi', child: Text('🇮🇳 हिन्दी')),
+                  DropdownMenuItem(value: 'zh', child: Text('🇨🇳 中文')),
+                  DropdownMenuItem(value: 'ar', child: Text('🇸🇦 العربية')),
+                  DropdownMenuItem(value: 'ja', child: Text('🇯🇵 日本語')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedLanguage = value;
+                    });
+                    widget.onUpdateLanguage?.call(value);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          _buildSection(
             'Learning Preferences',
             Icons.school,
             [
@@ -262,6 +354,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  String _getFontSizeLabel(double size) {
+    if (size <= 0.9) return 'Small';
+    if (size <= 1.1) return 'Medium';
+    if (size <= 1.3) return 'Large';
+    return 'Extra Large';
   }
 
   @override
