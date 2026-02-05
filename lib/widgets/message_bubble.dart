@@ -5,6 +5,7 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/github.dart';
 import 'package:flutter_highlight/themes/github-dark.dart';
+import 'package:intl/intl.dart';
 import '../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -165,13 +166,26 @@ class MessageBubble extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                IconButton(
-                  onPressed: () => _copyMessage(context),
-                  icon: const Icon(Icons.copy, size: 16),
-                  color: isDark ? Colors.grey[600] : Colors.grey,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  tooltip: 'Copy message',
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _formatTimestamp(message.timestamp),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.grey[600] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: () => _copyMessage(context),
+                      icon: const Icon(Icons.copy, size: 16),
+                      color: isDark ? Colors.grey[600] : Colors.grey,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: 'Copy message',
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -280,6 +294,21 @@ class MessageBubble extends StatelessWidget {
         return Icons.insert_drive_file;
     }
   }
-    );
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inSeconds < 60) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return DateFormat('MMM d, y').format(timestamp);
+    }
   }
 }
