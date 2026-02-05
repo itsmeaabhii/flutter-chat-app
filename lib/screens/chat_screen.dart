@@ -197,6 +197,79 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void _retryMessage(int messageIndex) async {
+    if (messageIndex < 0 || messageIndex >= _messages.length) return;
+    
+    final failedMessage = _messages[messageIndex];
+    if (!failedMessage.isUser) return;
+
+    // Update message status to sending
+    setState(() {
+      _messages[messageIndex] = failedMessage.copyWith(
+        status: MessageStatus.sending,
+      );
+      _isTyping = true;
+    });
+
+    // Try to send again
+    try {
+      String contextMessage = failedMessage.text;
+      if (failedMessage.attachments != null && failedMessage.attachments!.isNotEmpty) {
+        contextMessage += '\n[User attached ${failedMessage.attachments!.length} file(s): ${failedMessage.attachments!.map((a) => a.name).join(', ')}]';
+      }
+      
+      final response = await AIService.sendMessage(contextMessage);
+      
+      setState(() {
+        _messages[messageIndex] = failedMessage.copyWith(
+          status: MessageStatus.sent,
+        );
+        _messages.add(Message(
+          id: _generateMessageId(),
+          text: response,
+          isUser: false,
+          timestamp: DateTime.now(),
+          status: MessageStatus.sent,
+        ));
+        _isTyping = false;
+      });
+      
+      _scrollToBottom();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text('Message sent successfully'),
+              ],
+            ),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _messages[messageIndex] = failedMessage.copyWith(
+          status: MessageStatus.failed,
+        );
+        _isTyping = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _loadSession(ChatSession session) {
     setState(() {
       _messages.clear();
@@ -335,7 +408,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (index == _messages.length && _isTyping) {
                   return TypingIndicator();
                 }
-                return MessageBubble(message: _messages[index]);
+                return MessageBubble(
+                  message: _messages[index],
+                  onRetry: _messages[index].status == MessageStatus.failed
+                      ? () => _retryMessage(index)
+                      : null,
+                );
               },
             ),
           ),

@@ -10,8 +10,13 @@ import '../models/message.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
+  final VoidCallback? onRetry;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({
+    super.key, 
+    required this.message,
+    this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +56,9 @@ class MessageBubble extends StatelessWidget {
                   _buildAttachments(isDark),
                 GestureDetector(
                   onLongPress: () => _copyMessage(context),
+                  onDoubleTap: message.status == MessageStatus.failed && onRetry != null
+                      ? onRetry
+                      : null,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     decoration: BoxDecoration(
@@ -169,14 +177,40 @@ class MessageBubble extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _formatTimestamp(message.timestamp),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? Colors.grey[600] : Colors.grey[600],
+                    if (message.status == MessageStatus.failed) ...[
+                      Icon(
+                        Icons.error_outline,
+                        size: 14,
+                        color: Colors.red[700],
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Failed',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.red[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '• Double tap to retry',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isDark ? Colors.grey[600] : Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ] else ...[
+                      Text(
+                        _formatTimestamp(message.timestamp),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? Colors.grey[600] : Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     IconButton(
                       onPressed: () => _copyMessage(context),
                       icon: const Icon(Icons.copy, size: 16),
