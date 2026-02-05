@@ -150,6 +150,53 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  void _showClearChatDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Chat'),
+          content: const Text(
+            'Are you sure you want to clear this conversation? This action cannot be undone.',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _clearChat();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text('Chat cleared successfully'),
+                      ],
+                    ),
+                    duration: Duration(seconds: 2),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Clear'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _loadSession(ChatSession session) {
     setState(() {
       _messages.clear();
@@ -201,7 +248,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 }
                 _clearChat();
               } else if (value == 'clear') {
-                _clearChat();
+                _showClearChatDialog();
               } else if (value == 'settings') {
                 await Navigator.push(
                   context,
