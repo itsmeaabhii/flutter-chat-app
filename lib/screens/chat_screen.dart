@@ -484,25 +484,44 @@ class _ChatScreenState extends State<ChatScreen> {
                     width: 1,
                   ),
                 ),
-                child: TextField(
-                  controller: _controller,
-                  maxLines: null,
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: (_) => _sendMessage(),
-                  style: const TextStyle(
-                    color: Color(0xFF000000),
-                    fontSize: 15,
-                    height: 1.4,
-                  ),
-                  decoration: const InputDecoration(
-                    hintText: 'Ask anything...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 12),
-                    hintStyle: TextStyle(
-                      color: Color(0xFF9E9E9E),
-                      fontSize: 15,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      maxLength: 2000,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
+                      style: const TextStyle(
+                        color: Color(0xFF000000),
+                        fontSize: 15,
+                        height: 1.4,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: 'Ask anything...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        hintStyle: TextStyle(
+                          color: Color(0xFF9E9E9E),
+                          fontSize: 15,
+                        ),
+                        counterText: '',
+                      ),
                     ),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12, bottom: 4),
+                      child: Text(
+                        '${_controller.text.length}/2000',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: _controller.text.length > 1900 
+                              ? Colors.red 
+                              : Colors.grey[600],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
