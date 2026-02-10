@@ -8,8 +8,21 @@ import 'package:flutter_highlight/themes/github-dark.dart';
 import 'package:intl/intl.dart';
 import '../models/message.dart';
 
+/// A customizable chat message bubble widget that displays messages with rich formatting.
+/// 
+/// This widget supports:
+/// - Markdown rendering with syntax highlighting for code blocks
+/// - User and AI message differentiation with distinct styling
+/// - File attachments display
+/// - Copy to clipboard functionality
+/// - Retry mechanism for failed messages
+/// - Responsive theme support (light/dark mode)
+/// - Timestamp formatting with relative time display
 class MessageBubble extends StatelessWidget {
+  /// The message data to display
   final Message message;
+  
+  /// Optional callback function triggered when user double-taps a failed message
   final VoidCallback? onRetry;
 
   const MessageBubble({
@@ -20,6 +33,7 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Detect current theme mode for adaptive styling
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Padding(
@@ -230,6 +244,9 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  /// Copies the message text to the system clipboard and shows a confirmation snackbar.
+  /// 
+  /// This method is triggered by long-pressing the message bubble or tapping the copy icon.
   void _copyMessage(BuildContext context) {
     Clipboard.setData(ClipboardData(text: message.text));
     ScaffoldMessenger.of(context).showSnackBar(
@@ -248,6 +265,10 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  /// Checks if the message text contains markdown formatting or code blocks.
+  /// 
+  /// Returns true if the text includes code blocks, inline code, bold/italic formatting,
+  /// headers, or links. This determines whether to use MarkdownBody or plain Text widget.
   bool _hasCodeBlock(String text) {
     // Check if text contains markdown formatting
     return text.contains('```') || text.contains('`') || 
@@ -255,6 +276,10 @@ class MessageBubble extends StatelessWidget {
            text.contains('#') || text.contains('[');
   }
 
+  /// Builds the attachment preview widgets for messages with attached files.
+  /// 
+  /// Displays file name, type icon, and size for each attachment.
+  /// Supports different file types (image, document, audio, etc.)
   Widget _buildAttachments(bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -316,6 +341,9 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
+  /// Returns the appropriate icon for a given file type.
+  /// 
+  /// Supports: image, document, audio, and generic file types.
   IconData _getFileIcon(String type) {
     switch (type) {
       case 'image':
@@ -329,6 +357,14 @@ class MessageBubble extends StatelessWidget {
     }
   }
 
+  /// Formats the message timestamp into a human-readable relative time format.
+  /// 
+  /// Returns:
+  /// - "Just now" for messages less than 60 seconds old
+  /// - "Xm ago" for messages less than 60 minutes old
+  /// - "Xh ago" for messages less than 24 hours old
+  /// - "Xd ago" for messages less than 7 days old
+  /// - "MMM d, y" formatted date for older messages
   String _formatTimestamp(DateTime timestamp) {
     final now = DateTime.now();
     final difference = now.difference(timestamp);
