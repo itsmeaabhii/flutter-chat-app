@@ -92,12 +92,16 @@ class _TypingIndicatorState extends State<TypingIndicator>
         final scale = 0.8 + (opacity * 0.2);
         return Transform.scale(
           scale: scale.clamp(0.8, 1.0),
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(opacity.clamp(0.3, 0.7)),
-              shape: BoxShape.circle,
+          child: child,
+        );
+      },
+      // Cache the child widget to avoid rebuilding on each animation frame
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.5),
+          shape: BoxShape.circle,
             ),
           ),
         );
