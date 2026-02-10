@@ -29,7 +29,7 @@ class AIService {
       // Build messages for AI
       final messages = _buildMessages(userMessage, context, learningContext, prefs);
       
-      // Call OpenAI API
+      // Call OpenAI API with timeout
       final response = await http.post(
         Uri.parse(openAIEndpoint),
         headers: {
@@ -42,10 +42,21 @@ class AIService {
           'temperature': 0.7,
           'max_tokens': 1000,
         }),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
       );
       
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        
+        // Validate response structure
+        if (data['choices'] == null || data['choices'].isEmpty) {
+          return "⚠️ Received invalid response from AI. Please try again.";
+        }
+        
         final aiResponse = data['choices'][0]['message']['content'];
         
         // Learn from this interaction
@@ -53,10 +64,23 @@ class AIService {
         
         return aiResponse;
       } else if (response.statusCode == 401) {
-        return "⚠️ API key is invalid. Please update it in settings.";
+        return "⚠️ API key is invalid or unauthorized. Please update it in settings.";
+      } else if (response.statusCode == 429) {
+        return "⚠️ Rate limit exceeded. Please wait a moment and try again.";
+      } else if (response.statusCode == 500 || response.statusCode == 503) {
+        return "⚠️ AI service is temporarily unavailable. Please try again later.";
       } else {
-        return "⚠️ Error: ${response.statusCode}. Please try again.";
+        return "⚠️ Error (${response.statusCode}): ${response.reasonPhrase ?? 'Unknown error'}. Please try again.";
       }
+    } on FormatException catch (e) {
+      return "⚠️ Error parsing response. Please try again.";
+    } on http.ClientException catch (e) {
+      return "⚠️ Network error. Please check your internet connection.";
+    } on Exception catch (e) {
+      if (e.toString().contains('timeout')) {
+        return "⚠️ Request timed out. Please check your connection and try again.";
+      }
+      return "⚠️ Unexpected error occurred. Please try again.";
     } catch (e) {
       return "⚠️ Connection error. Please check your internet and try again.";
     }
