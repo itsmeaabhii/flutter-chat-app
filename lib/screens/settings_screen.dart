@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../services/preference_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -17,13 +19,17 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _apiKeyController = TextEditingController();
+  final TextEditingController _geminiApiKeyController = TextEditingController();
   bool _isObscured = true;
+  bool _isGeminiObscured = true;
   String? _selectedStyle;
   bool _likesExamples = true;
   bool _likesStepByStep = false;
   bool _isDarkMode = false;
   double _fontSize = 1.0;
   String _selectedLanguage = 'en';
+  String _apiProvider = 'gemini';
+  bool _isTestingKey = false;
 
   @override
   void initState() {
@@ -37,8 +43,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _apiKeyController.text = apiKey;
     }
 
+    final geminiApiKey = PreferenceService.getGeminiApiKey();
+    if (geminiApiKey != null) {
+      _geminiApiKeyController.text = geminiApiKey;
+    }
+
     final prefs = PreferenceService.getUserPreferences();
     setState(() {
+      _apiProvider = PreferenceService.getApiProvider();
       _selectedStyle = prefs.explanationStyle;
       _likesExamples = prefs.likesExamples;
       _likesStepByStep = prefs.likesStepByStep;
@@ -49,7 +61,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _saveSettings() async {
+    await PreferenceService.setApiProvider(_apiProvider);
     await PreferenceService.saveApiKey(_apiKeyController.text.trim());
+    await PreferenceService.saveGeminiApiKey(_geminiApiKeyController.text.trim());
 
     final prefs = PreferenceService.getUserPreferences();
     prefs.updateLearningPattern(
@@ -69,6 +83,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _testApiKey() async {
+    if (_isTestingKey) return;
+    
+    setState(() {
+      _isTestingKey = true;
+    });
+
+    try {
+      String? result;
+      if (_apiProvider == 'gemini') {
+        result = await _testGeminiKey(_geminiApiKeyController.text.trim());
+      } else {
+        result = await _testOpenAIKey(_apiKeyController.text.trim());
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result),
+            backgroundColor: result.contains('✅') ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isTestingKey = false;
+        });
+      }
+    }
+  }
+
+  Future<String> _testOpenAIKey(String apiKey) async {
+    if (apiKey.isEmpty) {
+      return '❌ Please enter an API key first';
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://api.openai.com/v1/chat/completions'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $apiKey',
+        },
+        body: jsonEncode({
+          'model': 'gpt-4o-mini',
+          'messages': [
+            {'role': 'user', 'content': 'test'}
+          ],
+          'max_tokens': 5,
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return '✅ API Key is VALID! You can start chatting.';
+      } else if (response.statusCode == 401) {
+        return '❌ Invalid API key. Please check and try again.';
+      } else if (response.statusCode == 429) {
+        return '⚠️ Rate limit or quota exceeded. Key might be valid but no credits.';
+      } else {
+        return '❌ Error ${response.statusCode}: ${response.reasonPhrase}';
+      }
+    } catch (e) {
+      return '❌ Connection failed. Check your internet or API key.';
+    }
+  }
+
+  Future<String> _testGeminiKey(String apiKey) async {
+    if (apiKey.isEmpty) {
+      return '❌ Please enter an API key first';
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': 'test'}
+              ]
+            }
+          ],
+        }),
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        return '✅ API Key is VALID! You can start chatting.';
+      } else if (response.statusCode == 400) {
+        final data = jsonDecode(response.body);
+        return '❌ Invalid key: ${data['error']?['message'] ?? 'Check your API key'}';
+      } else if (response.statusCode == 403) {
+        return '❌ API key denied. Make sure Gemini API is enabled.';
+      } else {
+        return '❌ Error ${response.statusCode}: ${response.reasonPhrase}';
+      }
+    } catch (e) {
+      return '❌ Connection failed. Check your internet or API key.';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,59 +203,240 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Icons.key,
             [
               const Text(
-                'Get your API key from OpenAI:',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
+                'Choose your AI provider:',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: () {
-                  // Copy URL to clipboard or open browser
-                },
-                child: const Text(
-                  'https://platform.openai.com/api-keys',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _apiKeyController,
-                obscureText: _isObscured,
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _apiProvider,
                 decoration: InputDecoration(
-                  labelText: 'OpenAI API Key',
-                  hintText: 'sk-...',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  suffixIcon: IconButton(
-                    icon: Icon(_isObscured ? Icons.visibility : Icons.visibility_off),
-                    onPressed: () {
-                      setState(() {
-                        _isObscured = !_isObscured;
-                      });
-                    },
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  prefixIcon: Icon(
+                    _apiProvider == 'gemini' ? Icons.auto_awesome : Icons.api,
+                    color: _apiProvider == 'gemini' ? Colors.blue : Colors.grey,
                   ),
                 ),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'gemini',
+                    child: Row(
+                      children: [
+                        Text('🌟 Google Gemini'),
+                        SizedBox(width: 8),
+                        Chip(
+                          label: Text('FREE', style: TextStyle(fontSize: 10)),
+                          backgroundColor: Colors.green,
+                          labelPadding: EdgeInsets.symmetric(horizontal: 4),
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ],
+                    ),
+                  ),
+                  DropdownMenuItem(
+                    value: 'openai',
+                    child: Text('🤖 OpenAI (ChatGPT)'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _apiProvider = value;
+                    });
+                  }
+                },
               ),
+              const SizedBox(height: 20),
+              if (_apiProvider == 'gemini') ...[
+                const Text(
+                  'Get your FREE Google Gemini API key:',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () {},
+                  child: const Text(
+                    'https://makersuite.google.com/app/apikey',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Gemini is FREE with 60 requests/min!',
+                          style: TextStyle(fontSize: 12, color: Colors.green),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _geminiApiKeyController,
+                  obscureText: _isGeminiObscured,
+                  decoration: InputDecoration(
+                    labelText: 'Google Gemini API Key',
+                    hintText: 'AIza...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(_isGeminiObscured ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _isGeminiObscured = !_isGeminiObscured;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isTestingKey ? null : _testApiKey,
+                    icon: _isTestingKey
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_circle),
+                    label: Text(_isTestingKey ? 'Testing...' : 'Test API Key'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Get your OpenAI API key:',
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () {},
+                  child: const Text(
+                    'https://platform.openai.com/api-keys',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _apiKeyController,
+                  obscureText: _isObscured,
+                  decoration: InputDecoration(
+                    labelText: 'OpenAI API Key',
+                    hintText: 'sk-...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(_isObscured ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _isObscured = !_isObscured;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isTestingKey ? null : _testApiKey,
+                    icon: _isTestingKey
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check_circle),
+                    label: Text(_isTestingKey ? 'Testing...' : 'Test API Key'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 24),
-          _buAppearance',
-            Icons.palette,
+          _buildSection(
+            'Troubleshooting',
+            Icons.help_outline,
             [
-              SwitchListTile(
-                title: const Text('Dark Mode'),
-                subtitle: const Text('Switch between light and dark theme'),
-                value: _isDarkMode,
-                onChanged: (value) {
-                  setState(() {
-                    _isDarkMode = value;
-                  });
-                  PreferenceService.setDarkMode(value);
-                },
-                secondary: Icon(_isDarkMode ? Icons.dark_mode : Icons.light_mode),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.blue, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Chat not working?',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '✅ Paste your API key carefully (no extra spaces)',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '✅ Click "Test API Key" to verify it works',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '✅ Make sure you saved settings',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      '✅ Check your internet connection',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '💡 Without an API key, Demo Mode still works for basic questions!',
+                      style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -366,6 +666,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _apiKeyController.dispose();
+    _geminiApiKeyController.dispose();
     super.dispose();
   }
 }

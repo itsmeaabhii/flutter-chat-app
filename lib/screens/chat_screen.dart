@@ -54,17 +54,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _addWelcomeMessage() {
     final hasApiKey = PreferenceService.hasApiKey();
+    final provider = PreferenceService.getApiProvider();
     
     String welcomeText;
     if (hasApiKey) {
-      welcomeText = "Ask me anything — GK, doubts, coding, daily life.";
+      welcomeText = "👋 **Welcome!** I'm your AI assistant.\n\n💬 Ask me anything:\n• Study help & homework\n• Coding & programming\n• Math & science\n• General knowledge\n• Life advice\n\n🚀 Let's learn together!";
     } else {
-      welcomeText = "Ask me anything — GK, doubts, coding, daily life.\n\n💡 Add your OpenAI API key in settings to unlock AI responses.";
+      if (provider == 'gemini') {
+        welcomeText = "👋 **Welcome!** I'm running in **Demo Mode**.\n\n✨ I can answer basic questions, but unlock full AI power:\n\n**🎯 Quick Setup (FREE):**\n1. Tap ⚙️ Settings\n2. Get FREE key: https://makersuite.google.com/app/apikey\n3. Paste it & tap 'Test API Key'\n4. Save & start chatting!\n\n💡 Try asking me about math, science, or coding!";
+      } else {
+        welcomeText = "👋 **Welcome!** I'm running in **Demo Mode**.\n\n✨ I can answer basic questions, but unlock full AI power:\n\n**Setup:**\n1. Tap ⚙️ Settings\n2. Get key: https://platform.openai.com/api-keys\n3. Paste it & tap 'Test API Key'\n4. Save & start chatting!\n\n💡 **Prefer FREE option?** Switch to Google Gemini in settings!";
+      }
     }
     
-    setSid: _generateMessageId(),
-        tate(() {
+    setState(() {
       _messages.add(Message(
+        id: _generateMessageId(),
         text: welcomeText,
         isUser: false,
         timestamp: DateTime.now(),
@@ -80,8 +85,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Add user message
     setState(() {
-      _mid: _generateMessageId(),
-        essages.add(Message(
+      _messages.add(Message(
+        id: _generateMessageId(),
         text: userMessage,
         isUser: true,
         timestamp: DateTime.now(),
@@ -94,13 +99,15 @@ class _ChatScreenState extends State<ChatScreen> {
     // Get AI response
     try {
       String contextMessage = userMessage;
-      if (attachments.isNotEmpty) {
-        contextMessage += '\n[User attached ${attachments.length} file(s): ${attachments.map((a) => a.name).join(', ')}]';
+      if (_selectedAttachments.isNotEmpty) {
+        contextMessage += '\n[User attached ${_selectedAttachments.length} file(s): ${_selectedAttachments.map((a) => a.name).join(', ')}]';
       }
       
       final response = await AIService.sendMessage(contextMessage, _messages);
 
-      setSid: _generateMessageId(),
+      setState(() {
+        _messages.add(Message(
+          id: _generateMessageId(),
           text: response,
           isUser: false,
           timestamp: DateTime.now(),
@@ -113,8 +120,6 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _messages.add(Message(
           id: _generateMessageId(),
-      setState(() {
-        _messages.add(Message(
           text: "I'm sorry, I encountered an error. Could you try rephrasing your question?",
           isUser: false,
           timestamp: DateTime.now(),
@@ -218,7 +223,7 @@ class _ChatScreenState extends State<ChatScreen> {
         contextMessage += '\n[User attached ${failedMessage.attachments!.length} file(s): ${failedMessage.attachments!.map((a) => a.name).join(', ')}]';
       }
       
-      final response = await AIService.sendMessage(contextMessage);
+      final response = await AIService.sendMessage(contextMessage, _messages);
       
       setState(() {
         _messages[messageIndex] = failedMessage.copyWith(
@@ -418,6 +423,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
           _buildInputArea(),
+        ],
+      ),
+    );
+  }
+
   Future<void> _pickFiles() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -433,32 +443,8 @@ class _ChatScreenState extends State<ChatScreen> {
           if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
             fileType = 'image';
           } else if (['pdf', 'doc', 'docx', 'txt', 'xls', 'xlsx'].contains(extension)) {
-            filColumn(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (hasAttachments) _buildAttachmentPreview(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE0E0E0),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.attach_file,
-                      color: Color(0xFF424242),
-                      size: 22,
-                    ),
-                    onPressed: _pickFiles,
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-                const SizedBox(width: 12),
-              } else if (['mp3', 'wav', 'aac', 'm4a'].contains(extension)) {
+            fileType = 'document';
+          } else if (['mp3', 'wav', 'aac', 'm4a'].contains(extension)) {
             fileType = 'audio';
           }
 
@@ -480,32 +466,146 @@ class _ChatScreenState extends State<ChatScreen> {
           content: Text('Error picking files: $e'),
           backgroundColor: Colors.red,
         ),
-      );(hasText || hasAttachments) ? Colors.black : const Color(0xFFE0E0E0),
-                shape: BoxShape.circle,
-                boxShadow: (hasText || hasAttachments)
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+      );
+    }
+  }
+
+  Widget _buildInputArea() {
+    final hasText = _controller.text.trim().isNotEmpty;
+    final hasAttachments = _selectedAttachments.isNotEmpty;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (hasAttachments) _buildAttachmentPreview(),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFE0E0E0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.attach_file,
+                        color: Color(0xFF424242),
+                        size: 22,
+                      ),
+                      onPressed: _pickFiles,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(maxHeight: 120),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFFFFF),
+                        borderRadius: BorderRadius.circular(28),
+                        border: Border.all(
+                          color: const Color(0xFFE0E0E0),
+                          width: 1,
                         ),
-                      ]
-                    : null,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          TextField(
+                            controller: _controller,
+                            maxLines: null,
+                            maxLength: 2000,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendMessage(),
+                            style: const TextStyle(
+                              color: Color(0xFF000000),
+                              fontSize: 15,
+                              height: 1.4,
+                            ),
+                            decoration: const InputDecoration(
+                              hintText: 'Ask anything...',
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(vertical: 12),
+                              hintStyle: TextStyle(
+                                color: Color(0xFF9E9E9E),
+                                fontSize: 15,
+                              ),
+                              counterText: '',
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(right: 12, bottom: 4),
+                            child: Text(
+                              '${_controller.text.length}/2000',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: _controller.text.length > 1900 
+                                    ? Colors.red 
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: (hasText || hasAttachments) ? Colors.black : const Color(0xFFE0E0E0),
+                      shape: BoxShape.circle,
+                      boxShadow: (hasText || hasAttachments)
+                          ? [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Icons.arrow_upward_rounded,
+                        color: (hasText || hasAttachments) ? Colors.white : const Color(0xFF9E9E9E),
+                        size: 22,
+                      ),
+                      onPressed: _isTyping || (!hasText && !hasAttachments) ? null : _sendMessage,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ],
               ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.arrow_upward_rounded,
-                  color: (hasText || hasAttachments) ? Colors.white : const Color(0xFF9E9E9E),
-                  size: 22,
-                ),
-                onPressed: _isTyping || (!hasText && !hasAttachments) ? null : _sendMessage,
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  void _removeAttachment(int index) {
+    setState(() {
+      _selectedAttachments.removeAt(index);
+    });
   }
 
   Widget _buildAttachmentPreview() {
@@ -588,99 +688,7 @@ class _ChatScreenState extends State<ChatScreen> {
         return Icons.audio_file;
       default:
         return Icons.insert_drive_file;
-    }      blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Container(
-                constraints: const BoxConstraints(maxHeight: 120),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFFFFF),
-                  borderRadius: BorderRadius.circular(28),
-                  border: Border.all(
-                    color: const Color(0xFFE0E0E0),
-                    width: 1,
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    TextField(
-                      controller: _controller,
-                      maxLines: null,
-                      maxLength: 2000,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _sendMessage(),
-                      style: const TextStyle(
-                        color: Color(0xFF000000),
-                        fontSize: 15,
-                        height: 1.4,
-                      ),
-                      decoration: const InputDecoration(
-                        hintText: 'Ask anything...',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
-                        hintStyle: TextStyle(
-                          color: Color(0xFF9E9E9E),
-                          fontSize: 15,
-                        ),
-                        counterText: '',
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 12, bottom: 4),
-                      child: Text(
-                        '${_controller.text.length}/2000',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: _controller.text.length > 1900 
-                              ? Colors.red 
-                              : Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: hasText ? Colors.black : const Color(0xFFE0E0E0),
-                shape: BoxShape.circle,
-                boxShadow: hasText
-                    ? [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: IconButton(
-                icon: Icon(
-                  Icons.arrow_upward_rounded,
-                  color: hasText ? Colors.white : const Color(0xFF9E9E9E),
-                  size: 22,
-                ),
-                onPressed: _isTyping || !hasText ? null : _sendMessage,
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    }
   }
 
   Future<void> _exportAsText() async {
@@ -833,7 +841,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                       style: pw.TextStyle(
                                         fontSize: 10,
                                         color: message.isUser 
-                                            ? PdfColors.white70 
+                                            ? PdfColors.grey300 
                                             : PdfColors.grey700,
                                       ),
                                     ),

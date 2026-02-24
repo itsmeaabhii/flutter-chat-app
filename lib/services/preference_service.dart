@@ -55,7 +55,30 @@ class PreferenceService {
   }
 
   static bool hasApiKey() {
-    return getApiKey()?.isNotEmpty ?? false;
+    final provider = getApiProvider();
+    if (provider == 'gemini') {
+      return getGeminiApiKey()?.isNotEmpty ?? false;
+    } else {
+      return getApiKey()?.isNotEmpty ?? false;
+    }
+  }
+
+  // Gemini API Key Management
+  static Future<void> saveGeminiApiKey(String apiKey) async {
+    await _prefs?.setString('gemini_api_key', apiKey);
+  }
+
+  static String? getGeminiApiKey() {
+    return _prefs?.getString('gemini_api_key');
+  }
+
+  // API Provider Management (openai or gemini)
+  static Future<void> setApiProvider(String provider) async {
+    await _prefs?.setString('api_provider', provider);
+  }
+
+  static String getApiProvider() {
+    return _prefs?.getString('api_provider') ?? 'gemini'; // Default to Gemini (free)
   }
 
   // Dark Mode Management

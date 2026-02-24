@@ -36,7 +36,23 @@ class _AIAssistantAppState extends State<AIAssistantApp> {
     _isDarkMode.value = !_isDarkMode.value;
     PreferenceService.setDarkMode(_isDarkMode.value);
   }
-ValueListenableBuilder<double>(
+
+  void updateFontSize(double size) {
+    _fontScale.value = size;
+    PreferenceService.setFontSize(size);
+  }
+
+  void updateLanguage(String languageCode) {
+    _languageCode.value = languageCode;
+    PreferenceService.setLanguage(languageCode);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _isDarkMode,
+      builder: (context, isDark, child) {
+        return ValueListenableBuilder<double>(
           valueListenable: _fontScale,
           builder: (context, fontScale, child) {
             return ValueListenableBuilder<String>(
@@ -99,28 +115,10 @@ ValueListenableBuilder<double>(
                     onUpdateFontSize: updateFontSize,
                     onUpdateLanguage: updateLanguage,
                   ),
-    _fontScale.dispose();
-    _languageCode.dispose();
                 );
               },
             );
-          }
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            cardColor: const Color(0xFF1E1E1E),
-            useMaterial3: true,
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Color(0xFFE0E0E0)),
-              bodyMedium: TextStyle(color: Color(0xFFE0E0E0)),
-            ),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1E1E1E),
-              foregroundColor: Color(0xFFFFFFFF),
-              elevation: 0,
-              centerTitle: true,
-            ),
-          ),
-          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
-          home: ChatScreen(onToggleTheme: toggleTheme),
+          },
         );
       },
     );
@@ -129,6 +127,8 @@ ValueListenableBuilder<double>(
   @override
   void dispose() {
     _isDarkMode.dispose();
+    _fontScale.dispose();
+    _languageCode.dispose();
     super.dispose();
   }
 }
